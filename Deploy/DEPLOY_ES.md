@@ -1,0 +1,173 @@
+# 🚀 Guía de Despliegue  
+## VMware Staging Environment (Ubuntu 24.04 + Docker)
+
+Este documento explica paso a paso cómo desplegar el entorno profesional utilizado en este laboratorio dentro de VMware.  
+Todo está estructurado según estándares DevOps y es replicable en un servidor físico o cloud.
+
+---
+
+# 📦 1. Requisitos
+
+### Software necesario
+- VMware Workstation / Player
+- Ubuntu Server 24.04 LTS
+- Docker
+- Docker Compose plugin
+- Git
+- Navegador (Chrome/Edge ⚠ Brave puede bloquear Swagger)
+
+---
+
+# 🗂 2. Estructura profesional en `/srv`
+
+Todo el entorno se organiza dentro de `/srv`, como haría un entorno de producción:
+
+
+```bash
+/srv
+├── apps/
+│ ├── portfolio/
+│ ├── reservas-api/
+│ ├── reservas-front/
+│ ├── sales-api/
+├── nginx/
+│ ├── conf.d/
+│ ├── logs/
+├── backups/
+└── docker-compose.yml
+
+```
+
+
+---
+
+# 🐳 3. Instalación de Docker + Docker Compose
+
+```bash
+sudo apt update
+sudo apt install -y docker.io docker-compose-plugin
+sudo usermod -aG docker $USER
+newgrp docker
+
+```
+
+# 🌐 4. Reverse Proxy con Nginx
+
+Los archivos del reverse proxy están en:
+
+/srv/nginx/conf.d/
+
+
+Ejemplo de configuración (reservas.conf):
+
+```bash
+
+server {
+    listen 80;
+    server_name reservas.local;
+
+    location / {
+        proxy_pass http://reservas-api:4000;
+    }
+}
+
+```
+
+Todas las apps tienen un archivo propio:
+
+- portfolio.conf  
+- reservas.conf  
+- reservas-front.conf  
+- sales.conf  
+- uptime-kuma.conf 
+
+# 🐋 5. Docker Compose unificado
+
+Archivo principal:
+
+/srv/docker-compose.yml
+
+
+Incluye todos los contenedores:
+
+- Nginx reverse proxy  
+- Portainer  
+- Uptime Kuma  
+- Portfolio (Next.js static)  
+- Reservas Front (Nginx static)  
+- Reservas API + MongoDB  
+- Sales API (with Prisma SQLite)
+
+Encender todos los contenedores:
+  
+```
+cd /srv
+docker compose up -d
+```
+
+Para ver logs del reverse proxy:
+
+```
+docker logs nginx_reverse_proxy
+```
+
+# 🌍 6. Dominios .local (Windows)
+
+Editar:
+
+`C:\Windows\System32\drivers\etc\hosts`
+
+
+Añadir:
+
+192.168.229.133 portfolio.local
+192.168.229.133 reservas.local
+192.168.229.133 reservas-front.local
+192.168.229.133 sales.local
+192.168.229.133 uptime.local
+
+# 🔗 7. Acceso a los servicios
+
+Service | URL
+--------|-----
+Portfolio | http://portfolio.local
+Reservas Front | http://reservas-front.local
+Reservas API Swagger | http://reservas.local/api-docs
+Sales API Swagger | http://sales.local/docs
+Uptime Kuma | http://uptime.local
+Portainer | http://YOUR-IP:9000
+
+# 📊 8. Logrotate
+
+Ejemplo de archivo:
+
+`/etc/logrotate.d/nginx_home_lab`
+
+
+Rotación diaria con compresión.
+
+# 💾 9. Backups automáticos
+
+Script:
+
+`/srv/backups/backup.sh`
+
+
+Cron diario (3 AM):
+
+`0 3 * * * root /srv/backups/backup.sh`
+
+# 🎯 10. Resultado final
+
+Al terminar, tienes un entorno profesional completo:
+
+✔ Nginx reverse proxy  
+✔ Portfolio deployed  
+✔ Reservas API + Front working  
+✔ Sales API working  
+✔ Swagger running on both APIs  
+✔ MongoDB running in Docker  
+✔ Portainer for visual management  
+✔ Uptime Kuma monitoring all services  
+✔ Log rotation and automated backups  
+✔ Unified Docker Compose in /srv  

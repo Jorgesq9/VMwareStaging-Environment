@@ -1,0 +1,83 @@
+version: "3.9"
+
+services:
+  nginx:
+    image: nginx:stable
+    container_name: nginx_reverse_proxy
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - /srv/nginx/conf.d:/etc/nginx/conf.d
+      - /srv/nginx/logs:/var/log/nginx
+      - /srv/nginx/ssl:/etc/nginx/ssl
+    networks:
+      - infra-net
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1.23.3
+    container_name: uptime-kuma
+    restart: always
+    volumes:
+      - /srv/monitoring/uptime-kuma/data:/app/data
+    networks:
+      - infra-net
+
+  portainer:
+    image: portainer/portainer-ce:2.20.2
+    container_name: portainer
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /srv/portainer/data:/data
+    networks:
+      - infra-net
+
+  portfolio:
+    build: /srv/apps/portfolio
+    container_name: portfolio
+    restart: always
+    networks:
+      - infra-net
+
+  reservas-api:
+    build: /srv/apps/reservas-api
+    container_name: reservas-api
+    restart: always
+    env_file:
+      - /srv/apps/reservas-api/.env
+    networks:
+      - infra-net
+
+  reservas-front:
+    build: /srv/apps/reservas-front
+    container_name: reservas-front
+    restart: always
+    networks:
+      - infra-net
+  
+  reservas-mongo:
+    image: mongo:6
+    container_name: reservas-mongo
+    restart: always
+    volumes:
+      - /srv/apps/reservas-api/mongo-data:/data/db
+    networks:
+      - infra-net
+  
+  sales-api:
+    build: /srv/apps/sales-api
+    container_name: sales-api
+    restart: always
+    env_file:
+      - /srv/apps/sales-api/.env
+    networks:
+      - infra-net
+
+networks:
+  infra-net:
+    driver: bridge
+
